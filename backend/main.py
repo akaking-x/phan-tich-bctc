@@ -172,4 +172,4 @@ async def upload_and_analyze(file: UploadFile = File(...)):
 
 @app.get("/api/health")
 async def health():
-    return {"status": "ok"}
+    return {"status": "ok", "version": "1.1.0"}
