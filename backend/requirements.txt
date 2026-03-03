@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+lxml
+defusedxml
+pydantic>=2.0
+python-multipart
+openpyxl
+reportlab
+pytest
+httpx
