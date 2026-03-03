@@ -23,9 +23,15 @@ app = FastAPI(
     version="1.0.0",
 )
 
+_origins = os.getenv("CORS_ORIGINS", "").split(",") if os.getenv("CORS_ORIGINS") else []
+_origins += [
+    "http://localhost:5173",
+    "https://bctc.xn--m-phng-6zb4190dsfa.vn",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )

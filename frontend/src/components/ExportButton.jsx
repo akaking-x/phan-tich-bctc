@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Download, FileText, FileSpreadsheet, Loader2 } from "lucide-react";
 import axios from "axios";
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_BASE || "";
 
 export default function ExportButton({ analysisData }) {
   const [exporting, setExporting] = useState(false);
