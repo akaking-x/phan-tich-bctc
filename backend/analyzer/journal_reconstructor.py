@@ -89,6 +89,33 @@ class JournalReconstructor:
     def __init__(self, cdtk_data: Dict[str, Any], account_map: Dict):
         self.ps = cdtk_data.get("SoPhatSinhTrongKy", {})
         self.account_map = account_map
+        self._parent_children = self._build_parent_children_map()
+
+    def _build_parent_children_map(self) -> Dict[str, List[str]]:
+        """Xây dựng mapping parent TK -> [child TKs] từ account_map."""
+        parent_to_children: Dict[str, List[str]] = {}
+        for info in self.account_map.values():
+            parent_tk = info.get("parent")
+            if parent_tk:
+                child_tk = info.get("tk")
+                if parent_tk not in parent_to_children:
+                    parent_to_children[parent_tk] = []
+                parent_to_children[parent_tk].append(child_tk)
+        return parent_to_children
+
+    def _dedup_parent_child(self, remaining: Dict[str, float]) -> Dict[str, float]:
+        """
+        Loại bỏ TK con khi TK cha đã có trong dict.
+
+        HTKK xuất cả TK cha (111) lẫn TK con (1111, 1112) với giá trị
+        TK cha = tổng TK con → gây trùng. Giữ TK cha vì COMMON_PAIRS
+        dùng mã TK cha.
+        """
+        for parent_tk, children in self._parent_children.items():
+            if parent_tk in remaining:
+                for child_tk in children:
+                    remaining.pop(child_tk, None)
+        return remaining
 
     def reconstruct(self) -> List[JournalEntry]:
         """
@@ -96,10 +123,11 @@ class JournalReconstructor:
 
         Thuật toán:
         1. Lấy tất cả TK có phát sinh != 0
-        2. Với mỗi cặp đối ứng phổ biến, kiểm tra xem
+        2. Loại bỏ TK con khi TK cha đã tồn tại (tránh trùng)
+        3. Với mỗi cặp đối ứng phổ biến, kiểm tra xem
            PS Nợ bên này có khớp PS Có bên kia không
-        3. Phân bổ số tiền theo min(PS Nợ, PS Có)
-        4. Số dư còn lại đánh dấu "chưa xác định"
+        4. Phân bổ số tiền theo min(PS Nợ, PS Có)
+        5. Số dư còn lại đánh dấu "chưa xác định"
         """
         no_ps = self.ps.get("no", {})
         co_ps = self.ps.get("co", {})
@@ -121,6 +149,10 @@ class JournalReconstructor:
             tk = self._ct_to_tk(ct_key)
             if tk:
                 co_remaining[tk] = co_remaining.get(tk, 0) + float(val)
+
+        # Loại bỏ TK con khi TK cha tồn tại (tránh double-counting)
+        self._dedup_parent_child(no_remaining)
+        self._dedup_parent_child(co_remaining)
 
         entries: List[JournalEntry] = []
 
