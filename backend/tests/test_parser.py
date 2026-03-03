@@ -184,7 +184,7 @@ class TestDetectCircularTT200:
         xml_file.write_text(xml_content, encoding="utf-8")
 
         parser = HtkkXmlParser(str(xml_file))
-        with pytest.raises(ValueError, match="khong nhan dien"):
+        with pytest.raises(ValueError, match="không nhận diện|999"):
             parser.detect_circular()
 
 

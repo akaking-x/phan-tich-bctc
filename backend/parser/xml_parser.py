@@ -292,6 +292,9 @@ class HtkkXmlParser:
 
         result = {}
         for child in parent:
+            # Bỏ comment nodes và processing instructions
+            if not isinstance(child.tag, str):
+                continue
             # Bỏ namespace prefix để lấy local name
             tag = etree.QName(child).localname
             text = (child.text or "").strip()
