@@ -141,6 +141,42 @@ class ExportRequest(BaseModel):
 
 # ─── Compare ─────────────────────────────────────────────
 
+# ─── Auto Correct ───────────────────────────────────────
+
+class CorrectionItemSchema(BaseModel):
+    """Mot muc sua doi tu dong."""
+    report: str = Field(..., description="Bao cao: cdkt, kqhdkd, lctt")
+    section: str = Field(..., description="Phan: so_cuoi_nam, nam_nay, ...")
+    code: str = Field(..., description="Ma chi tieu: ct100, ct10, ...")
+    old_value: float = Field(..., description="Gia tri cu")
+    new_value: float = Field(..., description="Gia tri moi")
+    rule_id: str = Field(..., description="Ma quy tac: CDKT_02, KQHDKD_01, ...")
+    reason: str = Field(..., description="Ly do sua")
+
+
+class AutoCorrectResponse(BaseModel):
+    """Response tu endpoint /api/auto-correct."""
+    success: bool = Field(default=True)
+    corrections: List[CorrectionItemSchema] = Field(
+        default_factory=list, description="Danh sach cac muc sua"
+    )
+    corrected_analysis: Dict[str, Any] = Field(
+        default_factory=dict, description="Ket qua phan tich sau khi sua"
+    )
+    original_analysis: Dict[str, Any] = Field(
+        default_factory=dict, description="Ket qua phan tich truoc khi sua"
+    )
+
+
+class ApplyCorrectionsRequest(BaseModel):
+    """Danh sach corrections de ap dung vao XML."""
+    corrections: List[CorrectionItemSchema] = Field(
+        ..., description="Danh sach corrections da chon"
+    )
+
+
+# ─── Compare ─────────────────────────────────────────────
+
 class CompareRequest(BaseModel):
     """Yeu cau so sanh 2 ky bao cao (year-over-year)."""
     # Files will be uploaded via form-data, not JSON body.

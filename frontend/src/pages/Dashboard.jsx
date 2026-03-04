@@ -13,6 +13,7 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
+  Wrench,
 } from "lucide-react";
 import { formatVND } from "../utils/formatters";
 import ExportButton from "../components/ExportButton";
@@ -161,6 +162,31 @@ export default function Dashboard({ data }) {
           >
             Xem tat ca canh bao
             <ChevronRight className="w-3 h-3" />
+          </Link>
+        </div>
+      )}
+
+      {/* Auto-correct button */}
+      {(validation.errors > 0 || validation.warnings > 0) && (
+        <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 flex items-center gap-4">
+          <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center shrink-0">
+            <Wrench className="w-5 h-5 text-orange-600" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-sm font-semibold text-orange-800">
+              Phat hien {validation.errors} loi trong doi chieu
+            </h3>
+            <p className="text-xs text-orange-600 mt-0.5">
+              Su dung chuc nang tu dong sua de khac phuc loi logic trong BCTC
+            </p>
+          </div>
+          <Link
+            to="/auto-correct"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg
+              text-sm font-medium hover:bg-orange-700 transition-colors shrink-0"
+          >
+            <Wrench className="w-4 h-4" />
+            Tu dong sua
           </Link>
         </div>
       )}

@@ -4,20 +4,23 @@ Additional API routes cho BCTC Analyzer.
 - Compare 2 file XML (year-over-year)
 """
 
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from fastapi.responses import StreamingResponse
 import tempfile
 import os
 import io
+import json
 from typing import Optional
 
 from parser.xml_parser import HtkkXmlParser
+from parser.xml_writer import HtkkXmlWriter
 from parser.tt133_mapper import CDKT_MAP, KQHDKD_MAP, CDTK_ACCOUNT_MAP
 from parser.tt200_mapper import CDTK_ACCOUNT_MAP as CDTK_ACCOUNT_MAP_TT200
 from validator.cross_check import CrossChecker
 from analyzer.journal_reconstructor import JournalReconstructor
 from analyzer.anomaly_detector import AnomalyDetector
 from analyzer.ratio_analyzer import RatioAnalyzer
+from analyzer.auto_corrector import AutoCorrector
 from reporter.excel_report import ExcelReporter
 from reporter.pdf_report import PdfReporter
 from api.schemas import ExportRequest
@@ -112,6 +115,94 @@ def _run_full_analysis(data: dict) -> dict:
             for r in ratios
         ],
     }
+
+
+@router.post("/api/auto-correct")
+async def auto_correct(file: UploadFile = File(...)):
+    """
+    Upload XML -> chay AutoCorrector -> tra JSON voi corrections + phan tich truoc/sau.
+    """
+    if not file.filename.endswith(".xml"):
+        raise HTTPException(400, "Chi chap nhan file .xml")
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".xml") as tmp:
+        content = await file.read()
+        tmp.write(content)
+        tmp_path = tmp.name
+
+    try:
+        # Parse va phan tich ban goc
+        parser = HtkkXmlParser(tmp_path)
+        data = parser.parse_all()
+        original_analysis = _run_full_analysis(data)
+
+        # Chay auto-correct
+        corrector = AutoCorrector(data)
+        corrections = corrector.correct_all()
+        corrected_data = corrector.get_corrected_data()
+
+        # Phan tich lai voi du lieu da sua
+        corrected_analysis = _run_full_analysis(corrected_data)
+
+        return {
+            "success": True,
+            "corrections": [
+                {
+                    "report": c.report,
+                    "section": c.section,
+                    "code": c.code,
+                    "old_value": c.old_value,
+                    "new_value": c.new_value,
+                    "rule_id": c.rule_id,
+                    "reason": c.reason,
+                }
+                for c in corrections
+            ],
+            "corrected_analysis": corrected_analysis,
+            "original_analysis": original_analysis,
+        }
+    except ValueError as e:
+        raise HTTPException(400, f"Loi du lieu: {str(e)}")
+    except Exception as e:
+        raise HTTPException(500, f"Loi tu dong sua: {str(e)}")
+    finally:
+        os.unlink(tmp_path)
+
+
+@router.post("/api/apply-corrections")
+async def apply_corrections(
+    file: UploadFile = File(...),
+    corrections: str = Form(...),
+):
+    """
+    Upload XML goc + JSON corrections -> tra file XML da sua de download.
+    corrections la JSON string gui qua form field.
+    """
+    if not file.filename.endswith(".xml"):
+        raise HTTPException(400, "Chi chap nhan file .xml")
+
+    try:
+        corr_list = json.loads(corrections)
+    except (json.JSONDecodeError, TypeError):
+        raise HTTPException(400, "Corrections khong phai JSON hop le")
+
+    xml_bytes = await file.read()
+
+    try:
+        writer = HtkkXmlWriter(xml_bytes)
+        applied = writer.apply_corrections(corr_list)
+        output_bytes = writer.to_bytes()
+
+        filename = file.filename.replace(".xml", "_corrected.xml")
+        return StreamingResponse(
+            io.BytesIO(output_bytes),
+            media_type="application/xml",
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"'
+            },
+        )
+    except Exception as e:
+        raise HTTPException(500, f"Loi ap dung sua doi: {str(e)}")
 
 
 @router.post("/api/export/excel")

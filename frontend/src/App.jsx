@@ -11,6 +11,7 @@ import {
   Menu,
   X,
   ChevronRight,
+  Wrench,
 } from "lucide-react";
 import Upload from "./pages/Upload";
 import Dashboard from "./pages/Dashboard";
@@ -18,6 +19,7 @@ import CrossCheck from "./pages/CrossCheck";
 import JournalView from "./pages/JournalView";
 import Anomalies from "./pages/Anomalies";
 import Ratios from "./pages/Ratios";
+import AutoCorrect from "./pages/AutoCorrect";
 
 const NAV_ITEMS = [
   { path: "/", label: "Tai len XML", icon: UploadCloud, requiresData: false },
@@ -51,19 +53,28 @@ const NAV_ITEMS = [
     icon: BarChart3,
     requiresData: true,
   },
+  {
+    path: "/auto-correct",
+    label: "Sua tu dong",
+    icon: Wrench,
+    requiresData: true,
+  },
 ];
 
 export default function App() {
   const [analysisData, setAnalysisData] = useState(null);
+  const [xmlFile, setXmlFile] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
 
-  const handleUploadSuccess = (data) => {
+  const handleUploadSuccess = (data, file) => {
     setAnalysisData(data);
+    if (file) setXmlFile(file);
   };
 
   const handleNewAnalysis = () => {
     setAnalysisData(null);
+    setXmlFile(null);
   };
 
   return (
@@ -198,6 +209,7 @@ export default function App() {
                 <Upload
                   onUploadSuccess={handleUploadSuccess}
                   hasData={!!analysisData}
+                  onFileSelect={setXmlFile}
                 />
               }
             />
@@ -246,6 +258,20 @@ export default function App() {
               element={
                 analysisData ? (
                   <Ratios data={analysisData} />
+                ) : (
+                  <Navigate to="/" replace />
+                )
+              }
+            />
+            <Route
+              path="/auto-correct"
+              element={
+                analysisData ? (
+                  <AutoCorrect
+                    data={analysisData}
+                    xmlFile={xmlFile}
+                    onCorrectedData={(d) => setAnalysisData(d)}
+                  />
                 ) : (
                   <Navigate to="/" replace />
                 )

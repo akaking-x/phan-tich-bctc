@@ -14,7 +14,7 @@ import FileUploader from "../components/FileUploader";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "";
 
-export default function Upload({ onUploadSuccess, hasData }) {
+export default function Upload({ onUploadSuccess, hasData, onFileSelect }) {
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState("");
@@ -58,7 +58,8 @@ export default function Upload({ onUploadSuccess, hasData }) {
 
       if (response.data && response.data.success) {
         setProgress("Hoan thanh! Dang chuyen den trang tong quan...");
-        onUploadSuccess(response.data);
+        if (onFileSelect) onFileSelect(selectedFile);
+        onUploadSuccess(response.data, selectedFile);
         setTimeout(() => navigate("/dashboard"), 500);
       } else {
         throw new Error(response.data?.detail || "Phan tich that bai.");
